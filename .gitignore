@@ -50,5 +50,6 @@ config/item-qa.env
 config/bib-production.env
 config/item-production.env
 config/holding-qa.env
+config/holding-production.env
 
 .lambda
