@@ -73,7 +73,7 @@ example.
 Then run:
 
 ```
-npm run deploy-[bib|item]-[development|qa|production]
+npm run deploy-[bib|item|holding]-[development|qa|production]
 ```
 
-Will deploy to Lambdas called `[bib|item]Poster-[environment]`. You can add a Kinesis stream triggers to execute function if not already added, but Kinesis stream triggers should be added automatically.
+Will deploy to Lambdas called `[bib|item|holding]Poster-[environment]`. You can add a Kinesis stream triggers to execute function if not already added, but Kinesis stream triggers should be added automatically.
