@@ -82,10 +82,18 @@ exports.kinesisHandler = function (records, context, callback) {
         if (response.statusCode === 401) {
           // Clear access token so new one will be requested on retried request
           CACHE['accessToken'] = null
+          CACHE['authFailedCount'] = (CACHE['authFailedCount'] || 0) + 1
+
+          if (CACHE['authFailedCount'] === 1) {
+            logger.warn({'message': 'Access token expired. Resetting and triggering retry.', 'response': response})
+          } else {
+            logger.error({'message': 'POST Error! Repeated 401s.', 'response': response})
+          }
+        } else {
+          logger.error({'message': 'POST Error! ', 'response': response})
         }
 
         callback(new Error())
-        logger.error({'message': 'POST Error! ', 'response': response})
         return
       }
 
@@ -99,6 +107,7 @@ exports.kinesisHandler = function (records, context, callback) {
         logger.info({'message': 'Data error: ' + body.errors})
       }
 
+      CACHE['authFailedCount'] = 0
       logger.info({'message': 'POST Success'})
     })
   }
