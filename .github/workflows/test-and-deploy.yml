@@ -33,8 +33,10 @@ jobs:
       - uses: hashicorp/setup-terraform@v2
       - name: Deploy app to QA
         run: |
-          terraform -chdir=provisioning/qa init -input=false
-          terraform -chdir=provisioning/qa apply -auto-approve -input=false
+          terraform -chdir=provisioning/bib-qa init -input=false
+          terraform -chdir=provisioning/bib-qa apply -auto-approve -input=false
+          terraform -chdir=provisioning/item-qa init -input=false
+          terraform -chdir=provisioning/item-qa apply -auto-approve -input=false
   deploy-production:
     permissions:
       id-token: write
@@ -54,5 +56,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v2
       - name: Deploy app to production
         run: |
-          terraform -chdir=provisioning/production init -input=false
-          terraform -chdir=provisioning/production apply -auto-approve -input=false
+          terraform -chdir=provisioning/bib-production init -input=false
+          terraform -chdir=provisioning/bib-production apply -auto-approve -input=false
+          terraform -chdir=provisioning/item-production init -input=false
+          terraform -chdir=provisioning/item-production apply -auto-approve -input=false
