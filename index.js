@@ -24,6 +24,11 @@ const logger = winston.createLogger({
 
 logger.info({'message': 'Loading Discovery Poster'})
 
+// Fetch wrapper to allow easy mocking in tests
+exports._fetch = async function (url, options) {
+  return fetch(url, options)
+}
+
 // kinesis stream handler
 exports.kinesisHandler = async function (records, context) {
   logger.info({'message': 'Processing ' + records.length + ' records'})
@@ -76,7 +81,7 @@ exports.kinesisHandler = async function (records, context) {
     logger.info({'message': 'Posting...'})
     let response
     try {
-      response = await fetch(url, options)
+      response = await exports._fetch(url, options)
     } catch (error) {
       logger.error({'message': 'POST Error! ', 'error': error})
       throw new Error()
@@ -133,7 +138,7 @@ exports.kinesisHandler = async function (records, context) {
     logger.info({'message': 'Loading schema...'})
     let resp
     try {
-      resp = await fetch(NYPL_API_SCHEMA_URL)
+      resp = await exports._fetch(NYPL_API_SCHEMA_URL)
     } catch (error) {
       logger.info({'message': 'Error! ' + error})
       throw error
