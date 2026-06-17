@@ -6,6 +6,8 @@ locals {
   tags = {
     Project = "Research Catalog"
     BusinessUnit = "LSP"
+    Environment = "${var.environment}"
+    OtherProjects = "MyLibraryNyc"
   }
 }
 
