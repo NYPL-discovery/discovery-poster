@@ -68,13 +68,10 @@ resource "aws_lambda_function" "lambda_instance" {
 
   # Load ENV vars from config and explicitly inject FUNCTION_NAME / ENVIRONMENT
   environment {
-    variables = merge(
-      { for tuple in regexall("(.*?)=(.*)", try(file("../../config/${var.function_name}-${var.environment}.env"), file("../../config/${var.environment}.env"), "")) : tuple[0] => tuple[1] },
-      {
+    variables = {
         FUNCTION_NAME = var.function_name
         ENVIRONMENT   = var.environment
       }
-    )
   }
   
   vpc_config {
