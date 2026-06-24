@@ -209,7 +209,7 @@ async function init () {
     NYPL_OAUTH_KEY,
     NYPL_OAUTH_SECRET,
     NYPL_OAUTH_URL
-  } = await config.loadConfig(`./config/${process.env.FUNCTION_NAME}-${process.env.ENVIRONMENT}.yaml`));
+  } = await config.loadConfig(`${process.env.FUNCTION_NAME}-${process.env.ENVIRONMENT}`));
 }
 
 // main function
