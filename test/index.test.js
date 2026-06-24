@@ -2,12 +2,11 @@ const assert = require('assert')
 const sinon = require('sinon')
 const { config } = require('@nypl/node-utils')
 const avro = require('avsc')
-const OAuth = require('oauth')
 const winston = require('winston')
 const poster = require('../index')
 
 describe('Discovery Bib Poster', () => {
-  let fetchStub, oauthMock, oauthConstructorStub, avroTypeStub, typeMock
+  let fetchStub, avroTypeStub, typeMock
 
   before(async () => {
     // Stub the config loader and initialize the index.js module variables once
@@ -16,11 +15,11 @@ describe('Discovery Bib Poster', () => {
       NYPL_API_SCHEMA_URL: 'https://example.com/schema',
       NYPL_OAUTH_KEY: 'test-key',
       NYPL_OAUTH_SECRET: 'test-secret',
-      NYPL_OAUTH_URL: 'https://example.com/oauth'
+      NYPL_OAUTH_URL: 'https://example.com'
     })
     
     // A dummy call to trigger the init() block without falling through to Kinesis
-    await poster.handler({ Records: [{}] }, {})
+    await poster.handler({ Records: [{}] })
     loadConfigStub.restore()
   })
 
@@ -35,9 +34,11 @@ describe('Discovery Bib Poster', () => {
       json: async () => ({ data: { schema: '{"type":"record"}' } })
     })
 
-    // Stub the OAuth2 constructor and getOAuthAccessToken method
-    oauthMock = { getOAuthAccessToken: sinon.stub() }
-    oauthConstructorStub = sinon.stub(OAuth, 'OAuth2').returns(oauthMock)
+    // Token fetch
+    fetchStub.withArgs('https://example.com/oauth/token', sinon.match.any).resolves({
+      ok: true,
+      json: async () => ({ access_token: 'fake-token' })
+    })
 
     // Stub the Avro schema decoder
     typeMock = { fromBuffer: sinon.stub().returns({ id: '123' }) }
@@ -66,7 +67,7 @@ describe('Discovery Bib Poster', () => {
     it('should safely ignore the event if the first record has no kinesis property', async () => {
       // Notice record 2 has kinesis data, but the handler should only evaluate record 1
       const mockEvent = { Records: [{}, { kinesis: { data: 'test' } }] }
-      const result = await poster.handler(mockEvent, {})
+      const result = await poster.handler(mockEvent)
       
       assert.strictEqual(result, undefined)
       assert.strictEqual(kinesisStub.called, false)
@@ -74,7 +75,7 @@ describe('Discovery Bib Poster', () => {
 
     it('should pass ALL records to kinesisHandler if the first record has a kinesis property', async () => {
       const mockEvent = { Records: [{ kinesis: { data: 'first' } }, {}] }
-      await poster.handler(mockEvent, {})
+      await poster.handler(mockEvent)
       
       assert.strictEqual(kinesisStub.calledOnce, true)
       assert.deepStrictEqual(kinesisStub.firstCall.args[0], mockEvent.Records)
@@ -83,8 +84,6 @@ describe('Discovery Bib Poster', () => {
 
   describe('Kinesis Handler Workflow', () => {
     it('should retrieve token and schema, decode records, and post them', async () => {
-      oauthMock.getOAuthAccessToken.yields(null, 'fake-token', 'refresh', null)
-      
       // Post request has 2 arguments, so we must use sinon.match.any to catch the options object
       fetchStub.withArgs('https://example.com/post', sinon.match.any).resolves({
         status: 200,
@@ -93,10 +92,10 @@ describe('Discovery Bib Poster', () => {
       })
 
       const mockRecords = [{ kinesis: { data: 'base64data' } }]
-      await poster.kinesisHandler(mockRecords, {})
+      await poster.kinesisHandler(mockRecords)
 
       // 1. Retrieve token check
-      assert.strictEqual(oauthConstructorStub.calledOnce, true)
+      assert.strictEqual(fetchStub.calledWith('https://example.com/oauth/token', sinon.match.any), true)
       assert.strictEqual(fetchStub.calledWith('https://example.com/schema'), true)
       
       // 2. Avro decode check
@@ -120,10 +119,13 @@ describe('Discovery Bib Poster', () => {
       const mockRecords = [{ kinesis: { data: 'base64data' } }]
       
       // First attempt fails and throws
-      await assert.rejects(poster.kinesisHandler(mockRecords, {}), Error)
+      await assert.rejects(poster.kinesisHandler(mockRecords), Error)
 
-      // On the very next execution, verify OAuth is called again (because the cache was cleared)
-      oauthMock.getOAuthAccessToken.yields(null, 'new-fake-token', 'refresh', null)
+      // Update token response for retry
+      fetchStub.withArgs('https://example.com/oauth/token', sinon.match.any).resolves({
+        ok: true,
+        json: async () => ({ access_token: 'new-fake-token' })
+      })
       
       fetchStub.withArgs('https://example.com/post', sinon.match.any).resolves({
         status: 200,
@@ -131,9 +133,7 @@ describe('Discovery Bib Poster', () => {
         json: async () => ({})
       })
 
-      await poster.kinesisHandler(mockRecords, {})
-      
-      assert.strictEqual(oauthConstructorStub.calledOnce, true)
+      await poster.kinesisHandler(mockRecords)
       
       const postCalls = fetchStub.getCalls().filter(call => call.args[0] === 'https://example.com/post')
       const finalPostCall = postCalls[postCalls.length - 1]
@@ -148,7 +148,7 @@ describe('Discovery Bib Poster', () => {
       })
 
       const mockRecords = [{ kinesis: { data: 'base64data' } }]
-      await assert.rejects(poster.kinesisHandler(mockRecords, {}), Error)
+      await assert.rejects(poster.kinesisHandler(mockRecords), Error)
     })
 
     it('should log data errors if present in the response body', async () => {
@@ -162,7 +162,7 @@ describe('Discovery Bib Poster', () => {
       const transportLogSpy = sinon.spy(winston.transports.Console.prototype, 'log')
       const mockRecords = [{ kinesis: { data: 'base64data' } }]
       
-      await poster.kinesisHandler(mockRecords, {})
+      await poster.kinesisHandler(mockRecords)
 
       const logCall = transportLogSpy.getCalls().find(call => 
         call.args[0] && call.args[0].message === 'Data error: Invalid property X,Invalid property Y'
