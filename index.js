@@ -1,5 +1,4 @@
 const avro = require('avsc')
-const OAuth = require('oauth')
 const winston = require('winston')
 const { config } = require('@nypl/node-utils')
 
@@ -30,7 +29,7 @@ exports._fetch = async function (url, options) {
 }
 
 // kinesis stream handler
-exports.kinesisHandler = async function (records, context) {
+exports.kinesisHandler = async function (records) {
   logger.info({'message': 'Processing ' + records.length + ' records'})
 
   try {
@@ -171,24 +170,33 @@ exports.kinesisHandler = async function (records, context) {
 
     // request a new token
     logger.info({'message': 'Requesting new token...'})
-    return new Promise(function (resolve, reject) {
-      const OAuth2 = OAuth.OAuth2
-      const key = NYPL_OAUTH_KEY
-      const secret = NYPL_OAUTH_SECRET
-      const url = NYPL_OAUTH_URL
-      const auth = new OAuth2(key, secret, url, null, 'oauth/token', null)
-      
-      auth.getOAuthAccessToken('', { grant_type: 'client_credentials' }, function (error, accessToken, refreshToken, results) {
-        if (error) {
-          reject(error)
-          logger.error({'message': 'Not authenticated'})
-        } else {
-          logger.info({'message': 'Successfully authenticated'})
-          CACHE['accessToken'] = accessToken
-          resolve(accessToken)
-        }
-      })
-    })
+    
+    const tokenUrl = NYPL_OAUTH_URL.endsWith('/') ? NYPL_OAUTH_URL + 'oauth/token' : NYPL_OAUTH_URL + '/oauth/token'
+    const credentials = Buffer.from(`${NYPL_OAUTH_KEY}:${NYPL_OAUTH_SECRET}`).toString('base64')
+    
+    const options = {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${credentials}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: 'grant_type=client_credentials'
+    }
+
+    try {
+      const response = await exports._fetch(tokenUrl, options)
+      if (!response.ok) {
+        logger.error({'message': 'Not authenticated'})
+        throw new Error('Not authenticated')
+      }
+      const data = await response.json()
+      logger.info({'message': 'Successfully authenticated'})
+      CACHE['accessToken'] = data.access_token
+      return data.access_token
+    } catch (error) {
+      logger.error({'message': 'Not authenticated'})
+      throw error
+    }
   }
 }
 
@@ -205,11 +213,11 @@ async function init () {
 }
 
 // main function
-exports.handler = async function (event, context) {
+exports.handler = async function (event) {
   await init()
 
   const record = event.Records[0]
   if (record.kinesis) {
-    await exports.kinesisHandler(event.Records, context)
+    await exports.kinesisHandler(event.Records)
   }
 }
