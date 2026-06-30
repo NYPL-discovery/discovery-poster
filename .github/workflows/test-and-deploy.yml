@@ -38,6 +38,7 @@ jobs:
           terraform -chdir=provisioning/item-qa init -input=false
           terraform -chdir=provisioning/item-qa apply -auto-approve -input=false
           terraform -chdir=provisioning/holding-qa init -input=false
+          terraform -chdir=provisioning/holding-qa import -input=false module.base.aws_lambda_function.lambda_instance HoldingPoster-qa || true
           terraform -chdir=provisioning/holding-qa apply -auto-approve -input=false
   deploy-production:
     permissions:
@@ -63,4 +64,5 @@ jobs:
           terraform -chdir=provisioning/item-production init -input=false
           terraform -chdir=provisioning/item-production apply -auto-approve -input=false
           terraform -chdir=provisioning/holding-production init -input=false
+          terraform -chdir=provisioning/holding-production import -input=false module.base.aws_lambda_function.lambda_instance HoldingPoster-production || true
           terraform -chdir=provisioning/holding-production apply -auto-approve -input=false
