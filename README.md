@@ -1,7 +1,7 @@
-# Discovery Bib/Item Poster
+# Discovery Bib/Item/Holding Poster
 
-This lambda should be deployed to two different lambdas.
-One to handle bibs, another for items. It reads those bibs or items from stream, then posts them to the bib or item service.
+This lambda should be deployed to three different lambdas.
+One to handle bibs, another for items, and another for holdings. It reads those bibs, items, or holdings from the stream, then posts them to the matching service.
 
 ## Setup
 
@@ -9,24 +9,7 @@ One to handle bibs, another for items. It reads those bibs or items from stream,
 
 ```
 npm install
-npm install -g node-lambda
-cp example.env .env
-cp deploy.example.env deploy-bib.env
-cp deploy.example.env deploy-item.env
 ```
-
-1.  Fill in `.env` with amazon account information
-
-1.  Fill in `deploy-*.env` files with the following variables
-
-| Variable            | Value                     |
-| :-------------      | :-------------            |
-| NYPL_API_SCHEMA_URL | URL to bib or item schema |
-| NYPL_POST_TYPE      | 'bib' or 'item'           |
-| NYPL_API_POST_URL   | URL this will POST to     |
-| NYPL_OAUTH_URL      |                           |
-| NYPL_OAUTH_KEY      |                           |
-| NYPL_OAUTH_SECRET   |.                          |
 
 
 Generate mock-data by running
@@ -65,15 +48,4 @@ If you need to introduce/update the application code, you `SHOULD`:
 
 ## Deploy
 
-Update event.json by running the above kinesify-data.js script for either item or bib.
-
-Make sure you have the correct config/[bib|item]-[environment].env files. See config/deploy.example.env for an
-example.  
-
-Then run:
-
-```
-npm run deploy-[bib|item|holding]-[development|qa|production]
-```
-
-Will deploy to Lambdas called `[bib|item|holding]Poster-[environment]`. You can add a Kinesis stream triggers to execute function if not already added, but Kinesis stream triggers should be added automatically.
+Deployment is handled automatically on Github. Merging to qa/production will deploy all the services (i.e. Bib/Item/Holding) in that deployment
