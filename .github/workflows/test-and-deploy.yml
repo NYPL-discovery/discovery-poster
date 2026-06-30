@@ -37,6 +37,8 @@ jobs:
           terraform -chdir=provisioning/bib-qa apply -auto-approve -input=false
           terraform -chdir=provisioning/item-qa init -input=false
           terraform -chdir=provisioning/item-qa apply -auto-approve -input=false
+          terraform -chdir=provisioning/holding-qa init -input=false
+          terraform -chdir=provisioning/holding-qa apply -auto-approve -input=false
   deploy-production:
     permissions:
       id-token: write
@@ -60,3 +62,5 @@ jobs:
           terraform -chdir=provisioning/bib-production apply -auto-approve -input=false
           terraform -chdir=provisioning/item-production init -input=false
           terraform -chdir=provisioning/item-production apply -auto-approve -input=false
+          terraform -chdir=provisioning/holding-production init -input=false
+          terraform -chdir=provisioning/holding-production apply -auto-approve -input=false
