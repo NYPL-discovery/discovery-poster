@@ -20,13 +20,6 @@ node kinesify-data.js event.unencoded.sierra_bib_post_request.json event.json ht
 
 This will take the un-encoded data in `event.unencoded.bibs.json` and put it in a kinesis stream format using the avro schema. You can load items by replacing the input file with `event.unencoded.items.json`
 
-Assuming you have the proper API and oauth credentials setup in your `.env`, you can run the lambda locally using the mock data in `event.json`
-
-```
-node-lambda run
-```
-
-This will take `event.json` (which is mocked-up kinesis stream data) as input, authenticate with oauth server, retrieve schema from Schema API, parse stream data, then post it to the bib or item API depending on config.
 
 ## GIT Workflow
 
