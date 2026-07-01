@@ -59,9 +59,13 @@ exports.kinesisHandler = async function (records) {
     const buf = Buffer.from(payload.kinesis.data, 'base64')
 
     // decode avro
-    const record = avroType.fromBuffer(buf)
-
-    return record
+    try {
+      const record = avroType.fromBuffer(buf)
+      return record
+    } catch (error) {
+      logger.error({'message': 'Avro decoding failed!', 'error': error.message, 'base64Payload': payload.kinesis.data})
+      throw error
+    }
   }
 
   // bulk posts records
@@ -209,7 +213,7 @@ async function init () {
     NYPL_OAUTH_KEY,
     NYPL_OAUTH_SECRET,
     NYPL_OAUTH_URL
-  } = await config.loadConfig(`${process.env.FUNCTION_NAME}-${process.env.ENVIRONMENT}`));
+  } = await config.loadConfig(`${process.env.FUNCTION_NAME}-${process.env.ENVIRONMENT}`);
 }
 
 // main function
