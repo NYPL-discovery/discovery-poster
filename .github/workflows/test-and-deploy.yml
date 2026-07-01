@@ -59,10 +59,8 @@ jobs:
       - name: Deploy app to production
         run: |
           terraform -chdir=provisioning/bib-production init -input=false
-          terraform -chdir=provisioning/bib-production import module.base.aws_lambda_function.lambda_instance BibPoster-production
           terraform -chdir=provisioning/bib-production apply -auto-approve -input=false
           terraform -chdir=provisioning/item-production init -input=false
-          terraform -chdir=provisioning/item-production import module.base.aws_lambda_function.lambda_instance ItemPoster-production
           terraform -chdir=provisioning/item-production apply -auto-approve -input=false
           terraform -chdir=provisioning/holding-production init -input=false
           terraform -chdir=provisioning/holding-production apply -auto-approve -input=false
