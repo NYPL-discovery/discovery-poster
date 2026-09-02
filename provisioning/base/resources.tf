@@ -9,6 +9,8 @@ locals {
     Environment = "${var.environment}"
     OtherProjects = "MyLibraryNyc"
   }
+
+  log_metric_name = "${var.function_name}Error-${var.environment}"
 }
 
 variable "environment" {
@@ -86,6 +88,38 @@ resource "aws_lambda_function" "lambda_instance" {
 
 data "aws_sns_topic" "rc_alarms" {
   name = "research-catalog-team-alarms-${var.environment}"
+
+  tags = local.tags
+}
+
+resource "aws_cloudwatch_log_metric_filter" "error_metric_filter" {
+  name           = local.log_metric_name
+  pattern        = "{ $.level = ERROR }"
+  log_group_name = "/aws/lambda/${aws_lambda_function.lambda_instance.function_name}"
+
+  metric_transformation {
+    name      = local.log_metric_name
+    namespace = "LogMetrics"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "lambda_log_errors" {
+  alarm_name          = "lambda-log-errors-${aws_lambda_function.lambda_instance.function_name}"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = local.log_metric_name
+  namespace           = "LogMetrics"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 1
+  alarm_description   = "Lambda function ${aws_lambda_function.lambda_instance.function_name} has more than 1 error log in 5 minutes"
+  alarm_actions       = [data.aws_sns_topic.rc_alarms.arn]
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = aws_lambda_function.lambda_instance.function_name
+  }
 
   tags = local.tags
 }
